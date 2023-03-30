@@ -10,7 +10,7 @@ For more info about the Miden VM and that particular example, read further.
 As additional ressources you can use: 
 
 - [Miden Playground (online Miden Assembly Compiler)](https://0xpolygonmiden.github.io/examples/) - *to get started and understand Miden Assembly*
-- [Miden VM Repo](https://github.com/0xPolygonMiden/miden-vm) - *to have the full developer feature set (CLI, Debugging, REPL, Concurrency)*
+- [Miden VM Repo](https://github.com/0xPolygonMiden/miden-vm) - *to have the full developer feature set ([CLI](https://0xpolygonmiden.github.io/miden-vm/intro/usage.html#cli-interface), [Miden Debugger](https://0xpolygonmiden.github.io/miden-vm/intro/usage.html#miden-debugger), [REPL](https://0xpolygonmiden.github.io/miden-vm/intro/usage.html#repl))*
 
 ___
 
