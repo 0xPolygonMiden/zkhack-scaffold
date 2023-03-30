@@ -1,0 +1,12 @@
+[package]
+name = "zkhack-scaffold"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+miden_vm = { version = "0.5.0", package = "miden-vm", default-features = false}
+miden_stdlib = { version = "0.4.0", package = "miden-stdlib", default-features = false}
