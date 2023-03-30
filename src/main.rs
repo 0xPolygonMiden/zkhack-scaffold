@@ -1,6 +1,6 @@
 use miden_stdlib::StdLibrary;
 use miden_vm::{
-    execute, execute_iter, prove, verify, Assembler, Kernel, MemAdviceProvider, Program,
+    execute, execute_iter, prove, verify, Assembler, Kernel, MemAdviceProvider,
     ProgramInfo, ProofOptions, StackInputs,
 };
 
