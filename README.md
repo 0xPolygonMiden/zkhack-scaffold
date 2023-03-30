@@ -7,6 +7,11 @@ You can run `cargo build` and `cargo run` to see the example working.
 
 For more info about the Miden VM and that particular example, read further.
 
+As additional ressources you can use: 
+
+- [Miden Playground (online Miden Assembly Compiler)](https://0xpolygonmiden.github.io/examples/) - *to get started and understand Miden Assembly*
+- [Miden VM Repo](https://github.com/0xPolygonMiden/miden-vm) - *to have the full developer feature set (CLI, Debugging, REPL, Concurrency)*
+
 ___
 
 # Miden VM
@@ -58,7 +63,10 @@ use miden::{Assembler, execute, execute_iter, MemAdviceProvider, StackInputs};
 let assembler = Assembler::default();
 
 // compile Miden assembly source code into a program
-let program = assembler.compile("begin push.3 push.5 add end").unwrap();
+let program = assembler
+        .compile("begin push.3 push.5 add end")
+        .map_err(|err| format!("Failed to compile program - {}", err))
+        .unwrap();
 
 // use an empty list as initial stack
 let stack_inputs = StackInputs::default();
@@ -92,15 +100,8 @@ If the program is executed successfully, the function returns a tuple with 2 ele
 * `proof: ExecutionProof` - proof of program execution. `ExecutionProof` can be easily serialized and deserialized using `to_bytes()` and `from_bytes()` functions respectively.
 
 #### Proof generation example
-Here is a simple example of executing a program which pushes two numbers onto the stack and computes their sum:
+Here is a simple example of proving the previous example:
 ```rust
-use miden::{Assembler, MemAdviceProvider, ProofOptions, prove, StackInputs};
-
-// instantiate the assembler
-let assembler = Assembler::default();
-
-// this is our program, we compile it from assembly code
-let program = assembler.compile("begin push.3 push.5 add end").unwrap();
 
 // let's execute it and generate a STARK proof
 let (outputs, proof) = prove(
@@ -136,10 +137,6 @@ Notice how the verifier needs to know only the hash of the program - not what th
 #### Proof verification example
 Here is a simple example of verifying execution of the program from the previous example:
 ```rust,ignore
-use miden;
-
-let program =   /* value from previous example */;
-let proof =     /* value from previous example */;
 
 // let's verify program execution
 match miden::verify(program.hash(), StackInputs::default(), &[8], proof) {
@@ -147,125 +144,6 @@ match miden::verify(program.hash(), StackInputs::default(), &[8], proof) {
     Err(msg) => println!("Something went terribly wrong: {}", msg),
 }
 ```
-
-## Fibonacci calculator
-Let's write a simple program for Miden VM (using [Miden assembly](../assembly)). Our program will compute the 5-th [Fibonacci number](https://en.wikipedia.org/wiki/Fibonacci_number):
-
-```masm
-push.0      // stack state: 0
-push.1      // stack state: 1 0
-swap        // stack state: 0 1
-dup.1       // stack state: 1 0 1
-add         // stack state: 1 1
-swap        // stack state: 1 1
-dup.1       // stack state: 1 1 1
-add         // stack state: 2 1
-swap        // stack state: 1 2
-dup.1       // stack state: 2 1 2
-add         // stack state: 3 2
-```
-Notice that except for the first 2 operations which initialize the stack, the sequence of `swap dup.1 add` operations repeats over and over. In fact, we can repeat these operations an arbitrary number of times to compute an arbitrary Fibonacci number. In Rust, it would look like this (this is actually a simplified version of the example in [fibonacci.rs](src/examples/src/fibonacci.rs)):
-```rust
-use miden::{Assembler, MemAdviceProvider, ProofOptions, StackInputs};
-
-// set the number of terms to compute
-let n = 50;
-
-// instantiate the default assembler and compile the program
-let source = format!(
-    "
-    begin
-        repeat.{}
-            swap dup.1 add
-        end
-    end",
-    n - 1
-);
-let program = Assembler::default().compile(&source).unwrap();
-
-// initialize an empty advice provider
-let advice_provider = MemAdviceProvider::default();
-
-// initialize the stack with values 0 and 1
-let stack_inputs = StackInputs::try_from_values([0, 1]).unwrap();
-
-// execute the program
-let (outputs, proof) = miden::prove(
-    &program,
-    stack_inputs,
-    advice_provider,
-    ProofOptions::default(), // use default proof options
-)
-.unwrap();
-
-// fetch the stack outputs, truncating to the first element
-let stack = outputs.stack_truncated(1);
-
-// the output should be the 50th Fibonacci number
-assert_eq!(&[12586269025], stack);
-```
-Above, we used public inputs to initialize the stack rather than using `push` operations. This makes the program a bit simpler, and also allows us to run the program from arbitrary starting points without changing program hash.
-
-## CLI interface
-If you want to execute, prove, and verify programs on Miden VM, but don't want to write Rust code, you can use Miden CLI. It also contains a number of useful tools to help analyze and debug programs.
-
-### Compiling Miden VM
-First, make sure you have Rust [installed](https://www.rust-lang.org/tools/install). The current version of Miden VM requires Rust version **1.67** or later.
-
-Then, to compile Miden VM into a binary, run the following command:
-```shell
-cargo build --release --features executable
-```
-This will place `miden` executable in the `./target/release` directory.
-
-By default, the executable will be compiled in the single-threaded mode. If you would like to enable multi-threaded proof generation, you can compile Miden VM using the following command:
-```shell
-cargo build --release --features "executable concurrent"
-```
-
-### Running Miden VM
-Once the executable has been compiled, you can run Miden VM like so:
-```shell
-./target/release/miden [subcommand] [parameters]
-```
-Currently, Miden VM can be executed with the following subcommands:
-* `run` - this will execute a Miden assembly program and output the result, but will not generate a proof of execution.
-* `prove` - this will execute a Miden assembly program, and will also generate a STARK proof of execution.
-* `verify` - this will verify a previously generated proof of execution for a given program.
-* `compile` - this will compile a Miden assembly program and outputs stats about the compilation process.
-* `debug` - this will instantiate a CLI debugger against the specified Miden assembly program and inputs.
-* `analyze` - this will run a Miden assembly program against specific inputs and will output stats about its execution.
-
-All of the above subcommands require various parameters to be provided. To get more detailed help on what is needed for a given subcommand, you can run the following:
-```shell
-./target/release/miden [subcommand] --help
-```
-For example:
-```shell
-./target/release/miden prove --help
-```
-
-### Fibonacci example
-In the `miden/examples/fib` directory, we provide a very simple Fibonacci calculator example. This example computes the 1000th term of the Fibonacci sequence. You can execute this example on Miden VM like so:
-```shell
-./target/release/miden run -a miden/examples/fib/fib.masm -n 1
-```
-This will run the example code to completion and will output the top element remaining on the stack.
-
-## Crate features
-Miden VM can be compiled with the following features:
-
-* `std` - enabled by default and relies on the Rust standard library.
-* `concurrent` - implies `std` and also enables multi-threaded proof generation.
-* `executable` - required for building Miden VM binary as described above. Implies `std`.
-* `no_std` does not rely on the Rust standard library and enables compilation to WebAssembly.
-
-To compile with `no_std`, disable default features via `--no-default-features` flag.
-
-### Concurrent proof generation
-When compiled with `concurrent` feature enabled, the VM will generate STARK proofs using multiple threads. For benefits of concurrent proof generation check out these [benchmarks](../README.md#Performance).
-
-Internally, we use [rayon](https://github.com/rayon-rs/rayon) for parallel computations. To control the number of threads used to generate a STARK proof, you can use `RAYON_NUM_THREADS` environment variable.
 
 ## License
 This project is [MIT licensed](../LICENSE).
