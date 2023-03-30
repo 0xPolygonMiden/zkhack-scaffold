@@ -1,3 +1,14 @@
+# Scaffolded Repo for zkHack in Lisbon 2023
+We want you to hack on the Miden VM. We want to provide a good experience for you to create, prove and verify programs and their execution. 
+
+This repo contains all building blocks that are needed. In `main.rs` you will see that there is a program being created, executed, proven and verified. 
+
+You can run `cargo build` and `cargo run` to see the example working. 
+
+For more info about the Miden VM and that particular example, read further.
+
+___
+
 # Miden VM
 This crate aggregates all components of Miden VM in a single place. Specifically, it re-exports functionality from [processor](../processor/), [prover](../prover/), and [verifier](../verifier/) crates. Additionally, when compiled as an executable, this crate can be used via a [CLI interface](#cli-interface) to execute Miden VM programs and to verify correctness of their execution.
 
